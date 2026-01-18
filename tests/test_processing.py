@@ -1,55 +1,44 @@
 """Тесты для модуля processing."""
 
 import pytest
+from typing import List, Dict, Any
+
 from src.processing import filter_by_state, sort_by_date
 
+
 @pytest.fixture
-def sample_transactions():
+def sample_transactions() -> List[Dict[str, Any]]:
     """Вот фикстура с тестовыми операциями, чтобы тесты не скучали."""
     return [
-        {
-            "id": 41428829,
-            "state": "EXECUTED",
-            "date": "2019-07-03T18:35:29.512364"
-        },
-        {
-            "id": 939719570,
-            "state": "EXECUTED",
-            "date": "2018-06-30T02:08:58.425572"
-        },
-        {
-            "id": 594226727,
-            "state": "CANCELED",
-            "date": "2018-09-12T21:27:25.241689"
-        },
-        {
-            "id": 615064591,
-            "state": "CANCELED",
-            "date": "2018-10-14T08:21:33.419441"
-        }
+        {"id": 41428829, "state": "EXECUTED", "date": "2019-07-03T18:35:29.512364"},
+        {"id": 939719570, "state": "EXECUTED", "date": "2018-06-30T02:08:58.425572"},
+        {"id": 594226727, "state": "CANCELED", "date": "2018-09-12T21:27:25.241689"},
+        {"id": 615064591, "state": "CANCELED", "date": "2018-10-14T08:21:33.419441"},
     ]
 
-def test_filter_by_state_executed(sample_transactions):
+
+def test_filter_by_state_executed(sample_transactions: List[Dict[str, Any]]) -> None:
     """Тест фильтрации EXECUTED."""
     result = filter_by_state(sample_transactions, "EXECUTED")
     assert len(result) == 2
 
-def test_filter_by_state_canceled(sample_transactions):
+
+def test_filter_by_state_canceled(sample_transactions: List[Dict[str, Any]]) -> None:
     """Тест фильтрации CANCELED."""
     result = filter_by_state(sample_transactions, "CANCELED")
     assert len(result) == 2
     assert all(t["state"] == "CANCELED" for t in result)
 
-def test_sort_by_date_desc(sample_transactions):
+
+def test_sort_by_date_desc(sample_transactions: List[Dict[str, Any]]) -> None:
     """Тест сортировки по убыванию даты (новые сверху)."""
     result = sort_by_date(sample_transactions)
     dates = [t["date"] for t in result]
     assert dates[0] > dates[1]  # 2019 > 2018
 
-def test_sort_by_date_asc(sample_transactions):
+
+def test_sort_by_date_asc(sample_transactions: List[Dict[str, Any]]) -> None:
     """Тест сортировки по возрастанию даты (старые сверху)."""
     result = sort_by_date(sample_transactions)
     dates = [t["date"] for t in result]
     assert dates[0] > dates[1]
-
-
