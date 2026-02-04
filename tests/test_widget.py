@@ -1,7 +1,10 @@
-import pytest
+import sys
+import os
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
-from src.widget import get_date, mask_account_card
+import pytest  # noqa: E402
+from widget import get_date, mask_account_card  # type: ignore
 
 
 @pytest.mark.parametrize(

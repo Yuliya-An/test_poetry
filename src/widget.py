@@ -1,21 +1,79 @@
-from src.masks import get_mask_account, get_mask_card_number
+from typing import List, Dict, Any
+from utils.file_reader import read_operations_from_json
+from external_api import convert_transaction_to_rubles
 
 
 def mask_account_card(user_card: str) -> str:
     """Функция маскирует номер карты или счета"""
-    if len(user_card) <= 0:
-        raise ValueError("Ошибка ввода! Пожалуйста, введите номер карты или счета.")
-    elif "Счет" in user_card:
-        mask_ac_num = f"{user_card[:4]} {get_mask_account(user_card[5:])}"
-        return mask_ac_num
-    else:
-        mask_card_num = f"{user_card[:-16]}{get_mask_card_number(user_card[-16:])}"
-        return mask_card_num
+    if not user_card:
+        return ""
+    if "Счет" in user_card:
+        return f"Счет **{user_card[-4:]}"
+    # Если это карта
+    parts = user_card.split()
+    number = parts[-1]
+    name = " ".join(parts[:-1])
+    if len(number) == 16 and number.isdigit():
+        return f"{name} {number[:4]} {number[4:6]}** **** {number[-4:]}"
+    return user_card
 
 
 def get_date(user_date: str) -> str:
     """Функция корректирует дату в формат ДД.ММ.ГГГГ"""
+    if not user_date:
+        return ""
+    # user_date имеет формат "2024-01-15T12:30:00.000Z"
     return f"{user_date[8:10]}.{user_date[5:7]}.{user_date[:4]}"
+
+
+def get_last_operations(file_path: str = "data/operations.json", count: int = 5) -> List[Dict[str, Any]]:
+    """Возвращает последние count выполненных операций."""
+    # Читаем данные из файла
+    operations = read_operations_from_json(file_path)
+    if not operations:
+        return []
+
+    # Фильтруем только выполненные операции
+    executed_ops = [op for op in operations if isinstance(op, dict) and op.get("state") == "EXECUTED"]
+
+    # Сортируем по дате (самые новые первые)
+    executed_ops.sort(key=lambda x: x.get("date", ""), reverse=True)
+
+    # Берем нужное количество
+    last_ops = executed_ops[:count]
+
+    # Обрабатываем каждую операцию
+    result: List[Dict[str, Any]] = []
+    for op in last_ops:
+        # Получаем сумму и валюту
+        operation_amount = op.get("operationAmount", {})
+        amount = operation_amount.get("amount")
+        currency = operation_amount.get("currency", {}).get("code")
+
+        # Конвертируем сумму в рубли
+        amount_rub = None
+        if amount and currency:
+            amount_rub = convert_transaction_to_rubles({"amount": amount, "currency": currency})
+
+        # Маскируем номера счетов/карт
+        description = op.get("description", "")
+        from_account = mask_account_card(op.get("from", "")) if op.get("from") else ""
+        to_account = mask_account_card(op.get("to", "")) if op.get("to") else ""
+
+        # Форматируем дату
+        date_str = get_date(op.get("date", ""))
+
+        # Собираем результат
+        processed_op = {
+            "date": date_str,
+            "description": description,
+            "from": from_account,
+            "to": to_account,
+            "amount": amount_rub if amount_rub is not None else amount,
+            "currency": "RUB" if amount_rub is not None else currency,
+        }
+        result.append(processed_op)
+    return result
 
 
 # # Запрос номера карты у пользователя
