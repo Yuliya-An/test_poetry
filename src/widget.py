@@ -1,6 +1,6 @@
 from typing import List, Dict, Any
-from utils.file_reader import read_operations_from_json
-from external_api import convert_transaction_to_rubles
+from .utils.currency import convert_to_rubles
+from .utils.file_reader import read_operations_from_json
 
 
 def mask_account_card(user_card: str) -> str:
@@ -53,13 +53,19 @@ def get_last_operations(file_path: str = "data/operations.json", count: int = 5)
         # Конвертируем сумму в рубли
         amount_rub = None
         if amount and currency:
-            amount_rub = convert_transaction_to_rubles({"amount": amount, "currency": currency})
+            if currency != "RUB":
+                try:
+                    amount_rub = convert_to_rubles(float(amount), currency)
+                except Exception:
+                    # Если конвертация не удалась, оставляем исходную сумму
+                    amount_rub = float(amount)
+            else:
+                amount_rub = float(amount)
 
         # Маскируем номера счетов/карт
         description = op.get("description", "")
         from_account = mask_account_card(op.get("from", "")) if op.get("from") else ""
         to_account = mask_account_card(op.get("to", "")) if op.get("to") else ""
-
         # Форматируем дату
         date_str = get_date(op.get("date", ""))
 

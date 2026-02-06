@@ -1,5 +1,8 @@
 """Модуль для конвертации валют с использованием внешнего API."""
 
+from requests.exceptions import RequestException
+
+
 import os
 from typing import Optional
 
@@ -32,7 +35,7 @@ def convert_to_rubles(amount: float, currency: str) -> Optional[float]:
             return None
         return amount * float(rate)
 
-    except requests.RequestException:
+    except RequestException:
         return None
     except (KeyError, TypeError, ValueError):
         return None

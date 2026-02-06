@@ -1,4 +1,4 @@
-import pytest
+from requests.exceptions import RequestException
 from unittest.mock import patch, Mock
 from src.utils.currency import convert_to_rubles
 
@@ -25,7 +25,7 @@ def test_convert_to_rubles_with_valid_response():
 def test_convert_to_rubles_api_error():
     """Проверяем обработку ошибки запроса."""
     mock_response = Mock()
-    mock_response.raise_for_status.side_effect = Exception('API error')
+    mock_response.raise_for_status.side_effect = RequestException('API error')  # ← ИЗМЕНЕНИЕ ЗДЕСЬ
 
     with patch.dict('os.environ', {'CURRENCY_API_KEY': 'test_key'}), \
          patch('requests.get', return_value=mock_response):
