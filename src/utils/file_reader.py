@@ -1,21 +1,29 @@
-"""Модуль для чтения операций из JSON-файла."""
 import json
-from typing import Any
+import logging
+from typing import Any, Dict, List
+
+logger = logging.getLogger(__name__)
 
 
-def read_operations_from_json(filepath: str) -> list[dict[str, Any]]:
-    """
-    Загружает список банковских операций из JSON-файла.
+def read_operations_from_json(file_path: str) -> List[Dict[str, Any]]:
+    """Читает JSON-файл с операциями."""
+    logger.debug(f"Чтение файла: {file_path}")
 
-    Args:
-        filepath: Путь к JSON-файлу с операциями.
-
-    Returns:
-        Список словарей с операциями. Если файл не найден или некорректен — пустой список.
-    """
     try:
-        with open(filepath, 'r', encoding='utf-8') as file:
-            data: Any = json.load(file)
-            return data if isinstance(data, list) else []
-    except (FileNotFoundError, json.JSONDecodeError, PermissionError):
-        return []
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        # Проверка, что это список
+        if not isinstance(data, list):
+            logger.error(f"В файле {file_path} не список, а {type(data)}")
+            raise ValueError("Ожидался список операций")
+
+        logger.info(f"Файл {file_path} прочитан, записей: {len(data)}")
+        return data
+
+    except FileNotFoundError:
+        logger.error(f"Файл не найден: {file_path}", exc_info=True)
+        raise
+    except json.JSONDecodeError as e:
+        logger.error(f"Ошибка JSON в файле {file_path}: {e}", exc_info=True)
+        raise
