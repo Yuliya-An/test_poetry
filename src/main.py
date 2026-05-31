@@ -89,10 +89,12 @@ def main() -> None:
         date = format_date(t.get('date', 'нет даты'))
         description = t.get('description', 'нет описания')
 
-        # Применяем маскировку из виджета для обоих счетов
+        # Маскировка счетов через виджет
         from_account = mask_account_card(t.get('from', ''))
         to_account = mask_account_card(t.get('to', ''))
 
+        # ВНИМАНИЕ: Используем нашу универсальную функцию для суммы
+        # Она сама разберется, словарь там или число, и добавит "руб."
         amount_str = extract_amount(t)
 
         print(f"{date} {description}")

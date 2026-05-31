@@ -61,21 +61,32 @@ def get_last_operations(file_path: str = "data/operations.json", count: int = 5)
 
         # Конвертируем сумму в рубли
         amount_rub = None
-        if amount and currency:
-            if currency != "RUB":
-                try:
-                    amount_rub = convert_to_rubles(float(amount), currency)
-                except Exception:
-                    # Если конвертация не удалась, оставляем исходную сумму
-                    amount_rub = float(amount)
-            else:
-                amount_rub = float(amount)
+        # Проверяем, что amount и currency существуют и не являются словарями
+        clean_amount = amount.get('amount') if isinstance(amount, dict) else amount
+        clean_currency = currency.get('code') if isinstance(currency, dict) else currency
+
+        if clean_amount and clean_currency:
+            try:
+                if clean_currency != "RUB":
+                    amount_rub = convert_to_rubles(float(clean_amount), clean_currency)
+                else:
+                    amount_rub = float(clean_amount)
+            except Exception:
+                amount_rub = float(clean_amount) if clean_amount else None
+
+        # Формируем финальную строку суммы с валютой (то, что хочет Александра)
+        if amount_rub is not None:
+            final_amount_str = f"{amount_rub} руб."
+        elif clean_amount:
+            # Если конвертация не сработала, но сумма есть — добавляем руб. по умолчанию
+            final_amount_str = f"{clean_amount} руб."
+        else:
+            final_amount_str = "0.0 руб."
 
         # Маскируем номера счетов/карт
         description = op.get("description", "")
         from_account = mask_account_card(op.get("from", "")) if op.get("from") else ""
         to_account = mask_account_card(op.get("to", "")) if op.get("to") else ""
-        # Форматируем дату
         date_str = get_date(op.get("date", ""))
 
         # Собираем результат
@@ -84,31 +95,7 @@ def get_last_operations(file_path: str = "data/operations.json", count: int = 5)
             "description": description,
             "from": from_account,
             "to": to_account,
-            "amount": amount_rub if amount_rub is not None else amount,
-            "currency": "RUB" if amount_rub is not None else currency,
+            "amount": final_amount_str,  # Теперь здесь сразу красивая строка!
         }
         result.append(processed_op)
     return result
-
-
-# # Запрос номера карты у пользователя
-# card_input = input("Введите номер карты: ")
-#
-# # Запрос номера счета у пользователя
-# account_input = input("Введите номер счета: ")
-#
-# # Ввод даты в формате ISO
-# date_input = input("Введите дату в формате ГГГГ-ММ-ДДТЧ:ММ:СС.микросекунды: ")
-#
-# # Маскируем номера
-# masked_card = get_mask_card_number(card_input)
-# masked_account = get_mask_account(account_input)
-#
-# # Форматируем дату
-# formatted_date = get_date(date_input)
-#
-#
-# # Выводим результаты
-# print("Маскированная карта:", masked_card)
-# print("Маскированный счет:", masked_account)
-# print("Форматированная дата:", formatted_date)
