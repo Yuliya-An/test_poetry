@@ -47,36 +47,61 @@ def mask_account_number(account: str) -> str:
 
 def extract_amount(transaction: dict) -> str:
     """
-    Извлекает сумму операции из разных форматов.
-    Для JSON это может быть {'amount': {'value': '100.00', 'currency': 'USD'}}
-    Для CSV/Excel — просто число или строка.
+    Извлекает сумму и валюту операции из разных форматов.
+    Универсальная версия: работает с JSON, CSV и Excel.
     """
+    # Пытаемся получить amount
     amount = transaction.get("amount")
+
+    # Если amount — словарь (как в JSON)
     if isinstance(amount, dict):
         value = amount.get("value", "")
         currency = amount.get("currency", "")
-        return f"{value} {currency}".strip()
-    elif amount:
-        return str(amount)
-    # Если ключа amount нет, попробуем другие варианты
-    # Например, в JSON могут быть поля 'operationAmount' или 'sum'
+        if value:
+            return f"{value} {currency}".strip()
+
+    # Если amount — просто число или строка (как в CSV/Excel)
+    if amount is not None:
+        currency = transaction.get("currency_code", "") or transaction.get("currency", "")
+        return f"{amount} {currency}".strip()
+
+    # Если amount нет, пробуем альтернативные ключи
     alt_amount = transaction.get("operationAmount") or transaction.get("sum")
     if isinstance(alt_amount, dict):
         value = alt_amount.get("value", "")
         currency = alt_amount.get("currency", "")
-        return f"{value} {currency}".strip()
+        if value:
+            return f"{value} {currency}".strip()
     elif alt_amount:
-        return str(alt_amount)
+        currency = transaction.get("currency_code", "") or transaction.get("currency", "")
+        return f"{alt_amount} {currency}".strip()
+
+    # Если ничего не нашли, возвращаем "нет суммы"
     return "нет суммы"
 
 
 def filter_by_currency(transactions: List[dict], currency: str) -> List[dict]:
     """
-    Фильтрует список транзакций по коду валюты из колонки currency_code.
+    Фильтрует список транзакций по коду валюты.
+    Умеет искать валюту как в поле currency_code (CSV/Excel),
+    так и внутри словаря amount.currency (JSON).
     """
     currency_upper = currency.upper()
-    # Ищем напрямую в ключе 'currency_code', который мы видели в твоей таблице
-    return [
-        tr for tr in transactions
-        if str(tr.get("currency_code", "")).upper() == currency_upper
-    ]
+    result = []
+
+    for tr in transactions:
+        # Проверяем currency_code (CSV/Excel)
+        code = tr.get("currency_code", "")
+        if str(code).upper() == currency_upper:
+            result.append(tr)
+            continue
+
+        # Проверяем amount.currency (JSON)
+        amount = tr.get("amount")
+        if isinstance(amount, dict):
+            curr = amount.get("currency", "")
+            if str(curr).upper() == currency_upper:
+                result.append(tr)
+                continue
+
+    return result
